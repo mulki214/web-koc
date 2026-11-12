@@ -1,0 +1,47 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: knockoutclub-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy verified main commit
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.KOC_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/knockoutclub_deploy"
+          cat > "$HOME/.ssh/known_hosts" <<'KNOWN_HOSTS'
+          103.93.134.27 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhQQVhMKhKxGHTB0o+j7BOiQHSQ+eXsfN2EZdZvd9Q4
+          KNOWN_HOSTS
+          ssh -i "$HOME/.ssh/knockoutclub_deploy" \
+            -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            nstprod@103.93.134.27 "deploy $GITHUB_SHA"
