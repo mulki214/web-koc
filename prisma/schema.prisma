@@ -1,0 +1,307 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+
+enum Role {
+ SUPER_ADMIN
+ ADMIN
+ EDITOR
+ FIGHTER
+}
+enum PublishStatus {
+ DRAFT
+ PUBLISHED
+ ARCHIVED
+}
+enum EventStatus {
+ UPCOMING
+ COMPLETED
+ CANCELLED
+}
+enum FightStatus {
+ SCHEDULED
+ COMPLETED
+ CANCELLED
+}
+enum Corner {
+ RED
+ BLUE
+ DRAW
+ NO_CONTEST
+}
+enum ApplicationStatus {
+ DRAFT
+ SUBMITTED
+ UNDER_REVIEW
+ APPROVED
+ REJECTED
+}
+enum Provider {
+ INSTAGRAM
+ TIKTOK
+ YOUTUBE
+ FACEBOOK
+}
+
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ passwordHash String
+ role Role @default(EDITOR)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ auditLogs AuditLog[]
+}
+model Gym {
+ id String @id @default(cuid())
+ name String @unique
+ city String?
+ fighters Fighter[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model Fighter {
+ id String @id @default(cuid())
+ slug String @unique
+ fullName String
+ ringName String?
+ portraitUrl String?
+ coverUrl String?
+ nationality String?
+ hometown String?
+ birthDate DateTime?
+ showBirthDate Boolean @default(false)
+ heightCm Int?
+ reachCm Int?
+ weightClass String?
+ stance String?
+ category String @default("PROFESSIONAL")
+ coach String?
+ bio String? @db.Text
+ gymId String?
+ gym Gym? @relation(fields: [gymId], references: [id])
+ status PublishStatus @default(DRAFT)
+ socials FighterSocialLink[]
+ redFights Fight[] @relation("RedFighter")
+ blueFights Fight[] @relation("BlueFighter")
+ registrations EventRegistration[]
+ articles Article[]
+ media MediaAsset[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([status, weightClass])
+}
+model FighterSocialLink {
+ id String @id @default(cuid())
+ fighterId String
+ fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+ provider Provider
+ url String
+ @@unique([fighterId, provider])
+}
+model Event {
+ id String @id @default(cuid())
+ slug String @unique
+ title String
+ subtitle String?
+ description String? @db.Text
+ category String?
+ posterUrl String?
+ venue String?
+ city String?
+ startsAt DateTime?
+ timezone String @default("Asia/Jakarta")
+ eventStatus EventStatus @default(UPCOMING)
+ status PublishStatus @default(DRAFT)
+ ticketUrl String?
+ registrationOpen Boolean @default(false)
+ fights Fight[]
+ registrations EventRegistration[]
+ articles Article[]
+ media MediaAsset[]
+ sponsors EventSponsor[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([status, startsAt])
+}
+model Fight {
+ id String @id @default(cuid())
+ eventId String
+ event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+ redFighterId String
+ redFighter Fighter @relation("RedFighter", fields: [redFighterId], references: [id])
+ blueFighterId String
+ blueFighter Fighter @relation("BlueFighter", fields: [blueFighterId], references: [id])
+ boutOrder Int
+ cardSection String @default("UNDERCARD")
+ division String?
+ rounds Int?
+ matchType String?
+ status FightStatus @default(SCHEDULED)
+ result FightResult?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([eventId, boutOrder])
+ @@index([redFighterId])
+ @@index([blueFighterId])
+}
+model FightResult {
+ id String @id @default(cuid())
+ fightId String @unique
+ fight Fight @relation(fields: [fightId], references: [id], onDelete: Cascade)
+ winner Corner
+ method String?
+ round Int?
+ approvedAt DateTime?
+ sourceUrl String?
+ imported Boolean @default(false)
+ verified Boolean @default(false)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model EventRegistration {
+ id String @id @default(cuid())
+ eventId String
+ event Event @relation(fields: [eventId], references: [id])
+ fighterId String
+ fighter Fighter @relation(fields: [fighterId], references: [id])
+ status ApplicationStatus @default(DRAFT)
+ submittedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([eventId, fighterId])
+}
+model FighterApplication {
+ id String @id @default(cuid())
+ email String
+ fullName String
+ phone String
+ privateData Json
+ status ApplicationStatus @default(DRAFT)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([email, status])
+}
+model ArticleCategory {
+ id String @id @default(cuid())
+ name String @unique
+ slug String @unique
+ articles Article[]
+}
+model Article {
+ id String @id @default(cuid())
+ slug String @unique
+ title String
+ excerpt String? @db.Text
+ body String @db.Text
+ coverUrl String?
+ authorName String?
+ status PublishStatus @default(DRAFT)
+ publishedAt DateTime?
+ scheduledAt DateTime?
+ seoTitle String?
+ seoDescription String?
+ categoryId String?
+ category ArticleCategory? @relation(fields: [categoryId], references: [id])
+ fighters Fighter[]
+ events Event[]
+ media MediaAsset[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([status, publishedAt])
+}
+model MediaAsset {
+ id String @id @default(cuid())
+ title String
+ kind String
+ url String
+ attribution String?
+ status PublishStatus @default(DRAFT)
+ eventId String?
+ event Event? @relation(fields: [eventId], references: [id])
+ fighterId String?
+ fighter Fighter? @relation(fields: [fighterId], references: [id])
+ articleId String?
+ article Article? @relation(fields: [articleId], references: [id])
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model SocialMediaIntegration {
+ id String @id @default(cuid())
+ provider Provider @unique
+ status String @default("DISCONNECTED")
+ tokenCiphertext String?
+ expiresAt DateTime?
+ accounts SocialMediaAccount[]
+ updatedAt DateTime @updatedAt
+}
+model SocialMediaAccount {
+ id String @id @default(cuid())
+ provider Provider
+ handle String
+ profileUrl String
+ integrationId String?
+ integration SocialMediaIntegration? @relation(fields: [integrationId], references: [id])
+ posts SocialMediaPost[]
+ @@unique([provider, handle])
+}
+model SocialMediaPost {
+ id String @id @default(cuid())
+ accountId String
+ account SocialMediaAccount @relation(fields: [accountId], references: [id])
+ url String @unique
+ title String?
+ featured Boolean @default(false)
+ status PublishStatus @default(DRAFT)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model Sponsor {
+ id String @id @default(cuid())
+ name String @unique
+ logoUrl String?
+ websiteUrl String?
+ events EventSponsor[]
+}
+model EventSponsor {
+ eventId String
+ sponsorId String
+ event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+ sponsor Sponsor @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+ @@id([eventId, sponsorId])
+}
+model NewsletterSubscriber {
+ id String @id @default(cuid())
+ email String @unique
+ consentAt DateTime
+ createdAt DateTime @default(now())
+}
+model SiteSetting {
+ key String @id
+ value Json
+ updatedAt DateTime @updatedAt
+}
+model AuditLog {
+ id String @id @default(cuid())
+ actorId String
+ actor User @relation(fields: [actorId], references: [id])
+ action String
+ entity String
+ entityId String
+ createdAt DateTime @default(now())
+ @@index([entity, entityId, createdAt])
+}
+model ContactInquiry {
+ id String @id @default(cuid())
+ name String
+ email String
+ topic String
+ message String @db.Text
+ createdAt DateTime @default(now())
+ reviewedAt DateTime?
+ @@index([createdAt])
+}

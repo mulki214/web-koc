@@ -1,0 +1,3 @@
+import Link from 'next/link'
+import { INSTAGRAM_PROFILE } from '@/lib/social'
+export function SiteHeader() { return <header className="site-header"><div className="container nav-wrap"><Link href="/" className="brand" aria-label="Knockout Club, beranda"><span className="brand-mark">K<span>C</span></span><span className="brand-name">KNOCKOUT<br/>CLUB</span></Link><nav aria-label="Navigasi utama" className="main-nav"><Link href="/events">EVENTS</Link><Link href="/fighters">FIGHTERS</Link><Link href="/news">NEWS</Link><Link href="/media">MEDIA</Link><Link href="/about">ABOUT</Link></nav><a className="header-social" href={INSTAGRAM_PROFILE} target="_blank" rel="noopener noreferrer" aria-label="Instagram Knockout Club">INSTAGRAM ↗</a></div></header> }

@@ -1,0 +1,8 @@
+export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { requireAdmin } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { logoutAction } from '@/app/actions'
+export const metadata:Metadata={title:'Dashboard',robots:{index:false,follow:false}}
+export default async function AdminPage(){const user=await requireAdmin();const [events,fighters,articles,inquiries]=await Promise.all([db.event.count(),db.fighter.count(),db.article.count({where:{status:'PUBLISHED'}}),db.contactInquiry.count({where:{reviewedAt:null}})]);return <main className="admin-shell"><div className="container"><span className="eyebrow">CONTENT CONTROL</span><h1 className="section-heading">DASHBOARD</h1><p style={{color:'var(--muted)'}}>Masuk sebagai {user.email} · {user.role}</p><div className="admin-tabs"><Link href="/admin/content">Kelola konten ↗</Link><Link href="/">Lihat situs ↗</Link><form action={logoutAction}><button className="button button-outline" type="submit">KELUAR</button></form></div><div className="admin-grid"><div className="admin-stat"><strong>{events}</strong><span>EVENTS</span></div><div className="admin-stat"><strong>{fighters}</strong><span>FIGHTERS</span></div><div className="admin-stat"><strong>{articles}</strong><span>ARTIKEL TERBIT</span></div><div className="admin-stat"><strong>{inquiries}</strong><span>PESAN BARU</span></div></div><div className="admin-card"><h2>EDITORIAL WORKFLOW</h2><p>Gunakan status Draft untuk meninjau informasi sebelum terbit. Perubahan tercatat dalam audit log. Hanya data berstatus Published yang tampil di halaman publik.</p><Link className="button" href="/admin/content">KELOLA KONTEN ↗</Link></div></div></main>}
