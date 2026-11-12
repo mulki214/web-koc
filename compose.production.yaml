@@ -1,0 +1,79 @@
+name: knockoutclub
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: knockoutclub
+      POSTGRES_USER: knockoutclub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knockoutclub -d knockoutclub"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - default
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://knockoutclub:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}@db:5432/knockoutclub?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+    profiles:
+      - tools
+  bootstrap:
+    build:
+      context: .
+      target: bootstrap
+    environment:
+      DATABASE_URL: postgresql://knockoutclub:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}@db:5432/knockoutclub?schema=public
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+    profiles:
+      - tools
+
+  web:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOSTNAME: 0.0.0.0
+      SITE_URL: ${SITE_URL:?Set SITE_URL in .env.production}
+      DATABASE_URL: postgresql://knockoutclub:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}@db:5432/knockoutclub?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env.production}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3001:3001"
+    networks:
+      default:
+      proxy:
+        aliases:
+          - knockoutclub-web
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+  proxy:
+    external: true
+    name: manuflow_proxy

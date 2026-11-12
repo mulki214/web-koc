@@ -38,7 +38,7 @@ npm run build
 
 ## Deploy
 
-Use Node.js and PostgreSQL behind HTTPS. Set `DATABASE_URL`, a random `SESSION_SECRET` of at least 32 characters, and `NEXT_PUBLIC_SITE_URL=https://knockoutclub.id`. Run `npx prisma migrate deploy`, bootstrap an admin once with `ADMIN_EMAIL` and `ADMIN_PASSWORD`, then remove those bootstrap variables. Run `npm run build` and `npm run start`. Configure database backups and reverse-proxy rate limiting before opening public forms. `Dockerfile` and `compose.yaml` provide a starting point for a Linux VPS; production secrets belong in the deployment environment, not Git.
+For the VPS that hosts Manuflow, follow [the production deployment guide](docs/DEPLOYMENT.md). The app uses its own PostgreSQL container and port 3001 behind the existing HTTPS proxy. Production secrets belong in `.env.production` on the VPS, not Git.
 
 The contact form stores inquiries in PostgreSQL; email notifications are not configured. Instagram highlights use curated URLs and permitted embeds; no Meta API access is claimed. Newsletter addresses are stored with consent when the database is configured; email delivery, object storage, and ticketing are not active.
 
