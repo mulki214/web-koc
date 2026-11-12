@@ -1,0 +1,8 @@
+knockoutclub.id {
+  encode zstd gzip
+  reverse_proxy knockoutclub-web:3001
+}
+
+www.knockoutclub.id {
+  redir https://knockoutclub.id{uri} permanent
+}

@@ -43,7 +43,7 @@ The password must have at least 12 characters. Clear those two values from `.env
 
 ## Official domain
 
-After the `A` record for `knockoutclub.id` points to `103.93.134.27`, add `knockoutclub.id` and `www.knockoutclub.id` to the Caddy site, validate and reload Caddy, then set `SITE_URL=https://knockoutclub.id` in `.env.production` and recreate the web container. Check HTTPS, canonical metadata, `robots.txt`, and `sitemap.xml` on the official domain. The DNS change is external to this repository.
+After the `A` records for `knockoutclub.id` and `www.knockoutclub.id` point to `103.93.134.27`, append `deploy/production/Caddyfile.official.snippet` to the live Caddyfile. Validate and reload Caddy, then set `SITE_URL=https://knockoutclub.id` in `.env.production` and recreate the web container. Check HTTPS, canonical metadata, `robots.txt`, and `sitemap.xml` on the official domain. The `www` hostname redirects to the apex domain. The DNS change is external to this repository.
 
 ## Checks
 
